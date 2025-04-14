@@ -30,41 +30,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 
-// Menu items grouped by section
-const navigationItems = {
-  main: [
-    {
-      title: "Home",
-      icon: Home,
-      url: "#",
-      isActive: true,
-    },
-    {
-      title: "Search",
-      icon: Search,
-      url: "#",
-    },
-    {
-      title: "Inbox",
-      icon: Inbox,
-      url: "#",
-      badge: "3",
-    },
-  ],
-  preferences: [
-    {
-      title: "Calendar",
-      icon: Calendar,
-      url: "#",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      url: "#",
-    },
-  ],
-};
 
 const Datalogs = () => {
   const [days, setDays] = useState([]);
@@ -320,36 +289,34 @@ const Datalogs = () => {
   }
 
   return (
-    <div className="max-w-full p-4">
-      <div className="container relative mx-auto bg-gradient-to-b from-[#16a34a] via-[#4ade80] to-[#bbf7d0]">
-        <div className="p-4 -z-10">
-          <h1 className="text-2xl font-bold text-white font-sans">Data Logs</h1>
-        </div>
-
+    <div className="max-w-full p-4 bg-indigo-100 min-h-screen">
+      <div className="container relative mx-auto bg-gradient-to-r from-[#16a34a] to-[#4ade80] rounded-md border shadow-lg">
+      
         {/* Search Section */}
-        <div className="p-4 bg-white rounded shadow mb-4 mx-4">
+        <div className="p-4 bg-white rounded shadow mb-4 mx-4 mt-8">
+          <h1 className="text-center font-bold font-sans text-2xl text-green-600">Data Logs</h1>
           <h2 className="text-lg font-bold mb-2">Search Data</h2>
-          <div className="flex gap-4">
-            <input
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
               type="text"
               placeholder="Enter Day (e.g., day1)"
               value={searchDay}
               onChange={(e) => setSearchDay(e.target.value)}
               className="p-2 border rounded w-full"
             />
-            <input
+            <Input
               type="text"
               placeholder="Enter Hour (e.g., hour1)"
               value={searchHour}
               onChange={(e) => setSearchHour(e.target.value)}
               className="p-2 border rounded w-full"
             />
-            <button
+            <Button
               onClick={handleSearch}
               className="bg-green-600 text-white px-4 py-2 rounded"
             >
               Search
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -360,49 +327,51 @@ const Datalogs = () => {
               <h3 className="text-lg font-bold">
                 Data for {searchDay} - {searchHour}
               </h3>
-              <button
+              <Button
                 onClick={() => setSearchResult(null)} // Clear the search result
                 className="bg-red-500 text-white px-4 py-2 rounded"
               >
                 Close
-              </button>
+              </Button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr>
-                    <th className="border p-2">Minutes</th>
-                    <th className="border p-2">Button Turner</th>
-                    <th className="border p-2">Egg Turner</th>
-                    <th className="border p-2">Fan Status</th>
-                    <th className="border p-2">Heater Status</th>
-                    <th className="border p-2">Humidity</th>
-                    <th className="border p-2">Temperature</th>
-                    <th className="border p-2">Water Presence</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full border-collapse text-xs">
+                <TableCaption>{searchDay} - {searchHour}</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Minutes</TableHead>
+                    <TableHead>Button Turner</TableHead>
+                    <TableHead>Egg Turner</TableHead>
+                    <TableHead>Fan Status</TableHead>
+                    <TableHead>Heater Status</TableHead>
+                    <TableHead>Humidity</TableHead>
+                    <TableHead>Temperature</TableHead>
+                    <TableHead>Water Presence</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {Object.entries(searchResult).map(([minute, data]) => (
-                    <tr key={minute}>
-                      <td className="border p-2">{minute}</td>
-                      <td className="border p-2">
+                    <TableRow key={minute}>
+                      <TableCell className="border p-2">{minute}</TableCell>
+                      <TableCell className="border p-2">
                         {data.Button_turner_status}
-                      </td>
-                      <td className="border p-2">{data.Egg_turner_status}</td>
-                      <td className="border p-2">{data["Fan Status"]}</td>
-                      <td className="border p-2">{data.Heater_status}</td>
-                      <td className="border p-2">{data.Humidity}</td>
-                      <td className="border p-2">{data.Temperature}</td>
-                      <td className="border p-2">{data.Water_presense}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="border p-2">{data.Egg_turner_status}</TableCell>
+                      <TableCell className="border p-2">{data["Fan Status"]}</TableCell>
+                      <TableCell className="border p-2">{data.Heater_status}</TableCell>
+                      <TableCell className="border p-2">{data.Humidity}</TableCell>
+                      <TableCell className="border p-2">{data.Temperature}</TableCell>
+                      <TableCell className="border p-2">{data.Water_presense}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         )}
 
-        <SidebarProvider>
+        <SidebarProvider className="min-h-fit">
+          {/* Sidebar */}
           <div className="mx-auto">
             <Sidebar className="z-1">
               <SidebarHeader className="border-b">
@@ -556,7 +525,6 @@ const Datalogs = () => {
           </div>
         </SidebarProvider>
       </div>
-
       {/* Delete Day Modal */}
       <div
         className={`fixed inset-0 bg-black bg-opacity-50 ${
@@ -570,18 +538,18 @@ const Datalogs = () => {
             be undone.
           </p>
           <div className="flex justify-end gap-2 mt-6">
-            <button
+            <Button
               className="px-4 py-2 bg-gray-200 rounded"
               onClick={() => setShowDeleteDayModal(false)}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               className="px-4 py-2 bg-red-500 text-white rounded"
               onClick={handleDeleteDay}
             >
               Delete
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -599,18 +567,18 @@ const Datalogs = () => {
             be undone.
           </p>
           <div className="flex justify-end gap-2 mt-6">
-            <button
+            <Button
               className="px-4 py-2 bg-gray-200 rounded"
               onClick={() => setShowDeleteHourModal(false)}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               className="px-4 py-2 bg-red-500 text-white rounded"
               onClick={handleDeleteHour}
             >
               Delete
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -622,7 +590,7 @@ const Datalogs = () => {
         }`}
       >
         <div className="bg-white p-6 rounded-lg w-96 mx-auto mt-40">
-          <h4 className="text-xl font-bold mb-4">Confirm System Reset</h4>
+          <h4 className="text-xl font-bold mb-4 text-red-500">Confirm System Reset</h4>
           <p className="mb-4">
             WARNING: This will reset ALL data in the system. All logs, incubator
             data, and time settings will be erased. This action cannot be
@@ -633,7 +601,13 @@ const Datalogs = () => {
             before you confirm the reset!
           </p>
           <div className="mb-4">
-            <label className="flex items-center">
+          <Label htmlFor="note">
+            <Checkbox id="note"
+            checked={resetConfirmed}
+            onCheckedChange={(checked) => setResetConfirmed(checked)}
+            /> 
+            I understand this action will erase all data</Label>
+            {/* <label className="flex items-center">
               <input
                 type="checkbox"
                 checked={resetConfirmed}
@@ -641,19 +615,19 @@ const Datalogs = () => {
                 className="mr-2"
               />
               I understand this action will erase all data
-            </label>
+            </label> */}
           </div>
           <div className="flex justify-end gap-2">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded"
+            <Button
+              className="px-4 py-2"
               onClick={() => {
                 setShowResetModal(false);
                 setResetConfirmed(false);
               }}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               className={`px-4 py-2 text-white rounded ${
                 resetConfirmed ? "bg-red-500" : "bg-gray-400"
               }`}
@@ -661,7 +635,7 @@ const Datalogs = () => {
               disabled={!resetConfirmed}
             >
               Reset System
-            </button>
+            </Button>
           </div>
         </div>
       </div>
