@@ -4,7 +4,7 @@ import { database } from "../firebaseConfig";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { Button } from "../components/ui/button";
-import { Calendar, Home, Inbox, Search, Settings, Trash2 } from "lucide-react";
+import { CalendarDays, RotateCcw, SkipBack, Trash2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -31,9 +31,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner"
+import { Toaster } from "@/components/ui/sonner"
 
 const Datalogs = () => {
   const [days, setDays] = useState([]);
@@ -48,6 +49,7 @@ const Datalogs = () => {
   const [searchDay, setSearchDay] = useState(""); // Input for day search
   const [searchHour, setSearchHour] = useState(""); // Input for hour search
   const [searchResult, setSearchResult] = useState(null); // Search result data
+  const [isTableVisible, setIsTableVisible] = useState(false);
 
   // Fetch only the day keys initially
   useEffect(() => {
@@ -68,6 +70,8 @@ const Datalogs = () => {
     if (selectedDay === day) {
       setSelectedDay(null);
       setDayData(null);
+      setIsTableVisible(false);
+      setSearchResult(null);
       return;
     }
 
@@ -77,6 +81,7 @@ const Datalogs = () => {
       const data = snapshot.val();
       setDayData(data);
       setSelectedDay(day);
+      setIsTableVisible(true);
       setIsLoading(false);
     });
   };
@@ -126,8 +131,11 @@ const Datalogs = () => {
   const downloadPDF = (hour) => {
     try {
       const doc = new jsPDF("landscape", "mm", "a4");
+      const data = searchResult || dayData[hour];
+      const title = searchResult
+        ? `${searchDay}_${searchHour}`
+        : `${selectedDay}_${hour}`;
 
-      // Constants for page layout
       const margin = 10;
       const rowHeight = 5;
       const headerHeight = 25;
@@ -137,10 +145,9 @@ const Datalogs = () => {
         (pageHeight - headerHeight - margin) / rowHeight
       );
 
-      // Function to add header
       const addHeader = () => {
         doc.setFontSize(16);
-        doc.text(`Data for ${selectedDay} - ${hour}`, margin, 15);
+        doc.text(`Data for ${title}`, margin, 15);
         doc.setFontSize(8);
 
         const columns = [
@@ -164,21 +171,19 @@ const Datalogs = () => {
       };
 
       // Get all rows
-      const allRows = Object.entries(dayData[hour]).map(([minute, data]) => [
+      const allRows = Object.entries(data).map(([minute, rowData]) => [
         minute,
-        data.Button_turner_status || "",
-        data.Egg_turner_status || "",
-        data["Fan Status"] || "",
-        data.Heater_status || "",
-        data.Humidity || "",
-        data.Temperature || "",
-        data.Water_presense || "",
+        rowData.Button_turner_status || "",
+        rowData.Egg_turner_status || "",
+        rowData["Fan Status"] || "",
+        rowData.Heater_status || "",
+        rowData.Humidity || "",
+        rowData.Temperature || "",
+        rowData.Water_presense || "",
       ]);
 
-      // Calculate number of pages needed
       const totalPages = Math.ceil(allRows.length / maxRowsPerPage);
 
-      // Process each page
       for (let pageNum = 0; pageNum < totalPages; pageNum++) {
         if (pageNum > 0) {
           doc.addPage();
@@ -186,12 +191,10 @@ const Datalogs = () => {
 
         const columnWidth = addHeader();
 
-        // Get rows for current page
         const startIdx = pageNum * maxRowsPerPage;
         const endIdx = Math.min((pageNum + 1) * maxRowsPerPage, allRows.length);
         const pageRows = allRows.slice(startIdx, endIdx);
 
-        // Draw rows for current page
         pageRows.forEach((rowData, rowIndex) => {
           const y = headerHeight + (rowIndex + 1) * rowHeight;
           rowData.forEach((text, colIndex) => {
@@ -199,7 +202,6 @@ const Datalogs = () => {
           });
         });
 
-        // Add page number
         doc.setFontSize(8);
         doc.text(
           `Page ${pageNum + 1} of ${totalPages}`,
@@ -210,15 +212,20 @@ const Datalogs = () => {
       }
 
       // Save the PDF
-      doc.save(`Data_${selectedDay}_${hour}.pdf`);
+      doc.save(`Data_${title}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
+      alert("Error generating PDF. Please try again.");
     }
   };
 
-  // Alternative: Add a CSV download option
   const downloadCSV = (hour) => {
     try {
+      const data = searchResult || dayData[hour];
+      const title = searchResult
+        ? `${searchDay}_${searchHour}`
+        : `${selectedDay}_${hour}`;
+
       const headers = [
         "Minutes",
         "Button Turner",
@@ -230,16 +237,16 @@ const Datalogs = () => {
         "Water Presence",
       ].join(",");
 
-      const rows = Object.entries(dayData[hour]).map(([minute, data]) =>
+      const rows = Object.entries(data).map(([minute, rowData]) =>
         [
           minute,
-          data.Button_turner_status || "",
-          data.Egg_turner_status || "",
-          data["Fan Status"] || "",
-          data.Heater_status || "",
-          data.Humidity || "",
-          data.Temperature || "",
-          data.Water_presense || "",
+          rowData.Button_turner_status || "",
+          rowData.Egg_turner_status || "",
+          rowData["Fan Status"] || "",
+          rowData.Heater_status || "",
+          rowData.Humidity || "",
+          rowData.Temperature || "",
+          rowData.Water_presense || "",
         ].join(",")
       );
 
@@ -251,20 +258,28 @@ const Datalogs = () => {
       const url = URL.createObjectURL(blob);
 
       link.setAttribute("href", url);
-      link.setAttribute("download", `Data_${selectedDay}_${hour}.csv`);
+      link.setAttribute("download", `Data_${title}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (error) {
       console.error("Error generating CSV:", error);
+      alert("Error generating CSV. Please try again.");
     }
   };
 
   // Handle search for specific day and hour
   const handleSearch = async () => {
+    setIsTableVisible(false);
     if (!searchDay || !searchHour) {
-      alert("Please enter both day and hour to search.");
+      toast("ERROR!", {
+        description: "Please enter both day and hour to search.",
+        action: {
+          label: "Try Again"
+        }
+      })
+      // alert("Please enter both day and hour to search.");
       return;
     }
 
@@ -275,27 +290,49 @@ const Datalogs = () => {
       if (snapshot.exists()) {
         setSearchResult(snapshot.val());
       } else {
-        alert("No data found for the specified day and hour.");
+        toast("ERROR!", {
+          description: "No data found for the specified day and hour.",
+          action: {
+            label: "Try Again"
+          }
+        })
+        // alert("No data found for the specified day and hour.");
         setSearchResult(null);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      alert("An error occurred while searching. Please try again.");
+      toast("ERROR!", {
+        description: "An error occurred while searching. Please try again",
+        action: {
+          label: "Try Again"
+        }
+      })
+      // alert("An error occurred while searching. Please try again.");
     }
   };
 
   if (isLoading) {
-    return <div className="spinner">Loading...</div>;
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
+        <div className="relative">
+          <div className="h-24 w-24 rounded-full border-t-4 border-b-4 border-green-500 animate-spin"></div>
+          <div className="mt-4 text-center text-lg font-semibold text-green-600">
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
   }
-
   return (
     <div className="max-w-full p-4 bg-indigo-100 min-h-screen">
+      <Toaster />
       <div className="container relative mx-auto bg-gradient-to-r from-[#16a34a] to-[#4ade80] rounded-md border shadow-lg">
-      
         {/* Search Section */}
         <div className="p-4 bg-white rounded shadow mb-4 mx-4 mt-8">
-          <h1 className="text-center font-bold font-sans text-2xl text-green-600">Data Logs</h1>
-          <h2 className="text-lg font-bold mb-2">Search Data</h2>
+          <h1 className="text-center font-bold font-sans text-2xl text-green-600">
+            Data Logs
+          </h1>
+          <h2 className="text-lg font-bold mb-2 mt-4">Search Data</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               type="text"
@@ -328,7 +365,7 @@ const Datalogs = () => {
                 Data for {searchDay} - {searchHour}
               </h3>
               <Button
-                onClick={() => setSearchResult(null)} // Clear the search result
+                onClick={() => setSearchResult(null)}
                 className="bg-red-500 text-white px-4 py-2 rounded"
               >
                 Close
@@ -336,7 +373,9 @@ const Datalogs = () => {
             </div>
             <div className="overflow-x-auto">
               <Table className="w-full border-collapse text-xs">
-                <TableCaption>{searchDay} - {searchHour}</TableCaption>
+                <TableCaption>
+                  {searchDay} - {searchHour}
+                </TableCaption>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Minutes</TableHead>
@@ -356,15 +395,54 @@ const Datalogs = () => {
                       <TableCell className="border p-2">
                         {data.Button_turner_status}
                       </TableCell>
-                      <TableCell className="border p-2">{data.Egg_turner_status}</TableCell>
-                      <TableCell className="border p-2">{data["Fan Status"]}</TableCell>
-                      <TableCell className="border p-2">{data.Heater_status}</TableCell>
-                      <TableCell className="border p-2">{data.Humidity}</TableCell>
-                      <TableCell className="border p-2">{data.Temperature}</TableCell>
-                      <TableCell className="border p-2">{data.Water_presense}</TableCell>
+                      <TableCell className="border p-2">
+                        {data.Egg_turner_status}
+                      </TableCell>
+                      <TableCell className="border p-2">
+                        {data["Fan Status"]}
+                      </TableCell>
+                      <TableCell className="border p-2">
+                        {data.Heater_status}
+                      </TableCell>
+                      <TableCell className="border p-2">
+                        {data.Humidity}
+                      </TableCell>
+                      <TableCell className="border p-2">
+                        {data.Temperature}
+                      </TableCell>
+                      <TableCell className="border p-2">
+                        {data.Water_presense}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={8} className="p-2 space-x-1">
+                      <Button
+                        onClick={() => downloadPDF(searchHour)}
+                        className="bg-green-600 text-white px-4 py-2 rounded"
+                      >
+                        Download PDF
+                      </Button>
+                      <Button
+                        onClick={() => downloadCSV(searchHour)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded"
+                      >
+                        Download CSV
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setHourToDelete(searchHour);
+                          setShowDeleteHourModal(true);
+                        }}
+                        className="bg-red-500 text-white px-4 py-2 rounded"
+                      >
+                        Delete Hour
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
               </Table>
             </div>
           </div>
@@ -376,14 +454,39 @@ const Datalogs = () => {
             <Sidebar className="z-1">
               <SidebarHeader className="border-b">
                 <div className="p-2 flex justify-between">
-                  <h2 className="text-lg font-semibold">My App</h2>
+                  <h2 className="text-lg font-semibold">IOT Egg Incubator</h2>
                   <SidebarTrigger />
                 </div>
               </SidebarHeader>
               <SidebarContent>
-                {/* Main Navigation */}
+                {/* Preferences */}
                 <SidebarGroup>
                   <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          onClick={() => (window.location.href = "/")}
+                          className="mr-2"
+                        >
+                          <SkipBack className="text-green-500" /> Back
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          onClick={() => setShowResetModal(true)}
+                          className=""
+                        >
+                          <RotateCcw className="text-red-500" /> Reset All Data
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Main Navigation */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>Select day</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {days.map((day) => (
@@ -397,14 +500,14 @@ const Datalogs = () => {
                                   : "bg-green-500 text-white"
                               }`}
                             >
-                              {day}
+                              <CalendarDays /> {day}
                             </SidebarMenuButton>
                             <SidebarMenuButton
                               onClick={() => setShowDeleteDayModal(true)}
-                              className="rounded"
+                              className="rounded text-red-500"
                               variant="outline"
                             >
-                              <Trash2 className="text-red-500" />
+                              <Trash2 /> Delete
                             </SidebarMenuButton>
                           </div>
                         </SidebarMenuItem>
@@ -412,115 +515,114 @@ const Datalogs = () => {
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
-
-                {/* Preferences */}
-                <SidebarGroup>
-                  <SidebarGroupLabel>Preferences</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          onClick={() => (window.location.href = "/")}
-                          className="mr-2"
-                        >
-                          Back
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          onClick={() => setShowResetModal(true)}
-                          className=""
-                        >
-                          Reset All Data
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
               </SidebarContent>
               <SidebarFooter className="border-t p-4">
                 <div className="text-xs text-muted-foreground">
-                  © 2025 My App Inc.
+                  IOT Egg Incubator
                 </div>
               </SidebarFooter>
               <SidebarRail />
             </Sidebar>
             {/* Main content */}
-            <div className="px-4 z-10 mt-8 mx-auto w-full grid grid-cols-1 xl:grid-cols-2 xl:gap-8">
-              <SidebarTrigger className="absolute left-0 top-0" />
-              {selectedDay &&
-                dayData &&
-                Object.entries(dayData).map(([hour, hourData]) => (
-                  <div
-                    key={hour}
-                    className="mb-8 bg-white p-4 rounded shadow w-full"
-                    id={`table-${hour}`}
-                  >
-                    <h3 className="text-lg font-bold mb-4">
-                      Data for {selectedDay} - {hour}
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <Table className="w-full border-collapse text-xs">
-                        <TableCaption>
-                          {selectedDay} - {hour}
-                        </TableCaption>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Minutes</TableHead>
-                            <TableHead>Button Turner</TableHead>
-                            <TableHead>Egg Turner</TableHead>
-                            <TableHead>Fan Status</TableHead>
-                            <TableHead>Heater Status</TableHead>
-                            <TableHead>Humidity</TableHead>
-                            <TableHead>Temperature</TableHead>
-                            <TableHead>Water Presence</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Object.entries(hourData).map(([minute, data]) => (
-                            <TableRow key={minute}>
-                              <TableCell>{minute}</TableCell>
-                              <TableCell>{data.Button_turner_status}</TableCell>
-                              <TableCell>{data.Egg_turner_status}</TableCell>
-                              <TableCell>{data["Fan Status"]}</TableCell>
-                              <TableCell>{data.Heater_status}</TableCell>
-                              <TableCell>{data.Humidity}</TableCell>
-                              <TableCell>{data.Temperature}</TableCell>
-                              <TableCell>{data.Water_presense}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                        <TableFooter>
-                          <TableRow>
-                            <TableCell colSpan={8} className="p-2 space-x-1">
-                              <Button
-                                onClick={() => downloadPDF(hour)}
-                                className="bg-green-600 text-white px-4 py-2 rounded"
-                              >
-                                Download PDF
-                              </Button>
-                              <Button
-                                onClick={() => downloadCSV(hour)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded"
-                              >
-                                Download CSV
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  setHourToDelete(hour);
-                                  setShowDeleteHourModal(true);
-                                }}
-                                className="bg-red-500 text-white px-4 py-2 rounded"
-                              >
-                                Delete Hour
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        </TableFooter>
-                      </Table>
+            <div>
+              <Button
+                className={`absolute right-4 top-73 md:top-47
+                  ${isTableVisible ? "block" : "hidden"}`}
+                onClick={() => setIsTableVisible(false)}
+              >
+                Close
+              </Button>
+              <div className="px-4 z-10 mt-8 mx-auto w-full ">
+                <SidebarTrigger className="absolute left-0 top-0" />
+                <div>
+                {isTableVisible && (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 xl:gap-8">
+                  {selectedDay &&
+                    dayData &&
+                    Object.entries(dayData).map(([hour, hourData]) => (
+                      <div
+                        key={hour}
+                        className="mb-8 bg-white p-4 rounded shadow w-full"
+                        id={`table-${hour}`}
+                      >
+                        <h3 className="text-lg font-bold mb-4">
+                          Data for {selectedDay} - {hour}
+                        </h3>
+                        <div className="overflow-x-auto">
+                          <Table className="w-full border-collapse text-xs">
+                            <TableCaption>
+                              {selectedDay} - {hour}
+                            </TableCaption>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Minutes</TableHead>
+                                <TableHead>Button Turner</TableHead>
+                                <TableHead>Egg Turner</TableHead>
+                                <TableHead>Fan Status</TableHead>
+                                <TableHead>Heater Status</TableHead>
+                                <TableHead>Humidity</TableHead>
+                                <TableHead>Temperature</TableHead>
+                                <TableHead>Water Presence</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {Object.entries(hourData).map(
+                                ([minute, data]) => (
+                                  <TableRow key={minute}>
+                                    <TableCell>{minute}</TableCell>
+                                    <TableCell>
+                                      {data.Button_turner_status}
+                                    </TableCell>
+                                    <TableCell>
+                                      {data.Egg_turner_status}
+                                    </TableCell>
+                                    <TableCell>{data["Fan Status"]}</TableCell>
+                                    <TableCell>{data.Heater_status}</TableCell>
+                                    <TableCell>{data.Humidity}</TableCell>
+                                    <TableCell>{data.Temperature}</TableCell>
+                                    <TableCell>{data.Water_presense}</TableCell>
+                                  </TableRow>
+                                )
+                              )}
+                            </TableBody>
+                            <TableFooter>
+                              <TableRow>
+                                <TableCell
+                                  colSpan={8}
+                                  className="p-2 space-x-1"
+                                >
+                                  <Button
+                                    onClick={() => downloadPDF(hour)}
+                                    className="bg-green-600 text-white px-4 py-2 rounded"
+                                  >
+                                    Download PDF
+                                  </Button>
+                                  <Button
+                                    onClick={() => downloadCSV(hour)}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                                  >
+                                    Download CSV
+                                  </Button>
+                                  <Button
+                                    onClick={() => {
+                                      setHourToDelete(hour);
+                                      setShowDeleteHourModal(true);
+                                    }}
+                                    className="bg-red-500 text-white px-4 py-2 rounded"
+                                  >
+                                    Delete Hour
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            </TableFooter>
+                          </Table>
+                        </div>
+                      </div>
+                    ))}
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </SidebarProvider>
@@ -539,7 +641,7 @@ const Datalogs = () => {
           </p>
           <div className="flex justify-end gap-2 mt-6">
             <Button
-              className="px-4 py-2 bg-gray-200 rounded"
+              className="px-4 py-2 rounded"
               onClick={() => setShowDeleteDayModal(false)}
             >
               Cancel
@@ -568,7 +670,7 @@ const Datalogs = () => {
           </p>
           <div className="flex justify-end gap-2 mt-6">
             <Button
-              className="px-4 py-2 bg-gray-200 rounded"
+              className="px-4 py-2 rounded"
               onClick={() => setShowDeleteHourModal(false)}
             >
               Cancel
@@ -590,7 +692,9 @@ const Datalogs = () => {
         }`}
       >
         <div className="bg-white p-6 rounded-lg w-96 mx-auto mt-40">
-          <h4 className="text-xl font-bold mb-4 text-red-500">Confirm System Reset</h4>
+          <h4 className="text-xl font-bold mb-4 text-red-500">
+            Confirm System Reset
+          </h4>
           <p className="mb-4">
             WARNING: This will reset ALL data in the system. All logs, incubator
             data, and time settings will be erased. This action cannot be
@@ -601,12 +705,14 @@ const Datalogs = () => {
             before you confirm the reset!
           </p>
           <div className="mb-4">
-          <Label htmlFor="note">
-            <Checkbox id="note"
-            checked={resetConfirmed}
-            onCheckedChange={(checked) => setResetConfirmed(checked)}
-            /> 
-            I understand this action will erase all data</Label>
+            <Label htmlFor="note">
+              <Checkbox
+                id="note"
+                checked={resetConfirmed}
+                onCheckedChange={(checked) => setResetConfirmed(checked)}
+              />
+              I understand this action will erase all data
+            </Label>
             {/* <label className="flex items-center">
               <input
                 type="checkbox"
