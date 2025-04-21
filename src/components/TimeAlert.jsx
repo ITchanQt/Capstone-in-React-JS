@@ -67,7 +67,7 @@ function TimeAlert() {
   if (!showAlert) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+    <div className="fixed top-16 md:top-18 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in w-[98%] md:w-fit">
       <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
         <strong className="font-bold">Warning!</strong> The incubator is not running.
       </div>
