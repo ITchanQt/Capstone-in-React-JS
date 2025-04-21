@@ -42,12 +42,12 @@ function ControlPage() {
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col">
       <Navbar />
-      <TimeAlert />
       <div className="mx-auto w-full 2xl:container mt-4 px-4 flex-grow">
+      <TimeAlert />
+        <div className="bg-white shadow-md rounded-lg p-6 space-y-6 mt-8">
         <h1 className="text-3xl text-center text-primary-green mb-6">
           Controls
         </h1>
-        <div className="bg-white shadow-md rounded-lg p-6 space-y-6">
           <div className="text-center">
             <h2 className="text-2xl text-green-600 mb-4">{setTemperature}°C</h2>
             <div className="flex justify-center space-x-4">

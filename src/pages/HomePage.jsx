@@ -50,11 +50,12 @@ function HomePage() {
     <div className="min-h-screen w-full bg-gray-50 flex flex-col">
       <Navbar />
       <TimeAlert />
-      <div className="mx-auto w-full 2xl:container mt-4 px-4 flex-grow">
-        <h1 className="text-3xl text-center text-primary-green mb-6">
+      <div className="mx-auto w-full 2xl:container mt-8 px-4 flex-grow">
+       
+        <div className="bg-white shadow-md rounded-lg p-6 space-y-4 mt-8">
+        <h1 className="text-3xl text-center text-primary-green">
           Incubator Data
         </h1>
-        <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
           {Object.entries(incubatorData).map(([key, value]) => (
             <div
               key={key}
